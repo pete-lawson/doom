@@ -1,0 +1,110 @@
+* Aesthetics
+Settings related to the appearance of Doom Emacs, but not it's functionality.
+
+** Theme
+#+BEGIN_SRC emacs-lisp
+(setq doom-theme 'doom-one)
+#+END_SRC
+
+** Font
+*** Set font face
+#+begin_src emacs-lisp
+(setq doom-font (font-spec :size 20)
+      doom-variable-pitch-font (font-spec :family "ETBembo"))
+#+end_src
+
+*** Enable mixed-pitch mode
+#+begin_src emacs-lisp
+(use-package! mixed-pitch
+  ;; Enable in all text modes
+  :hook (text-mode . mixed-pitch-mode)
+  :config
+  (setq mixed-pitch-set-height t)
+  (set-face-attribute 'variable-pitch nil :height 250))
+#+end_src
+
+** Disable titlebar
+#+begin_src emacs-lisp
+(setq default-frame-alist '((undecorated . t)))
+#+end_src
+
+** Show line numbers
+#+BEGIN_SRC emacs-lisp
+(setq display-line-numbers-type t)
+#+end_src
+
+** Hide emphasis (bold, italic) markers for clean editing
+#+begin_src emacs-lisp
+(after! org
+  (setq org-hide-emphasis-markers t))
+#+end_src
+
+* Biblio setup
+#+begin_src emacs-lisp
+;; biblio
+(after! citar
+  (setq citar-bibliography '("~/Dropbox/JHU/references/references.bib")))
+
+#+end_src
+* Org
+** Org Directory
+#+begin_src emacs-lisp
+(setq org-directory "~/Dropbox/JHU/notes")
+#+end_src
+
+#+RESULTS:
+: ~/Dropbox/JHU/notes/org/
+
+** Org Roam
+*** Setup
+#+begin_src emacs-lisp
+(after! org
+  (setq org-roam-directory "~/Dropbox/JHU/notes")
+  (setq org-roam-db-location "~/.roam/org-roam.db"))
+#+end_src
+*** Insert node without jumping to insert buffer
+Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/
+#+begin_src emacs-lisp
+;; Bind this to C-c n I
+
+(after! org
+  (defun org-roam-node-insert-immediate (arg &rest args)
+    (interactive "P")
+    (let ((args (cons arg args))
+        (org-roam-capture-templates (list (append (car org-roam-capture-templates) '(:immediate-finish t)))))
+    (apply #'org-roam-node-insert args)))
+  (map! :leader
+        :desc "Insert node immediate"
+        "n r I" #'org-roam-node-insert-immediate)
+)
+#+end_src
+*** Custom org-roam capture templates
+#+begin_src emacs-lisp
+(after! org-roam
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n") :unnarrowed t)
+          ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+           :if-new (file+head "projects/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n#+category: ${title}\n#+filetags: :project:") :unnarrowed t)
+          ("c" "consult" plain "* Description\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n*"
+           :if-new (file+head "consults/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n#+category: ${title}\n#+filetags: :consult:") :unnarrowed t)
+
+          )))
+
+#+end_src
+
+** Org Agenda
+#+begin_src emacs-lisp
+(after! org
+  (setq org-agenda-files '("~/Dropbox/JHU/notes/projects"
+                           "~/Dropbox/JHU/notes/consults"
+                           "~/Dropbox/JHU/notes/daily")))
+
+#+end_src
+
+#+RESULTS:
+| ~/Dropbox/JHU/notes/projects | ~/Dropbox/JHU/notes/consults | ~/Dropbox/JHU/notes/daily |
