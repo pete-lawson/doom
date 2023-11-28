@@ -1,7 +1,7 @@
 (setq doom-theme 'doom-one)
 
 (setq doom-font (font-spec :size 20)
-      doom-variable-pitch-font (font-spec :family "ETBembo"))
+      doom-variable-pitch-font (font-spec :family "CMU Serif"))
 
 (use-package! mixed-pitch
   ;; Enable in all text modes
@@ -12,7 +12,7 @@
 
 (setq default-frame-alist '((undecorated . t)))
 
-(setq display-line-numbers-type t)
+(setq display-line-numbers-type nil)
 
 (after! org
   (setq org-hide-emphasis-markers t))
@@ -25,7 +25,9 @@
 
 (after! org
   (setq org-roam-directory "~/Dropbox/JHU/notes")
-  (setq org-roam-db-location "~/.roam/org-roam.db"))
+  (setq org-roam-db-location "~/.roam/org-roam.db")
+  (setq org-startup-with-latex-preview t)
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0)))
 
 ;; Bind this to C-c n I
 
@@ -54,6 +56,17 @@
                               "#+title: ${title}\n#+category: ${title}\n#+filetags: :consult:") :unnarrowed t)
 
           )))
+
+(after! org
+  (custom-theme-set-faces
+   'user
+   '(org-level-1 ((t (:inherit outline-1 :family "CMU Sans Serif Demi Condensed" :height 1.2))) t)
+   '(org-level-2 ((t (:inherit outline-2 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-3 ((t (:inherit outline-3 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-4 ((t (:inherit outline-4 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-5 ((t (:inherit outline-5 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-6 ((t (:inherit outline-6 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-7 ((t (:inherit outline-7 :family "CMU Sans Serif Demi Condensed"))) t)))
 
 (after! org
   (setq org-agenda-files '("~/Dropbox/JHU/notes/projects"

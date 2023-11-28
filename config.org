@@ -10,7 +10,7 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 *** Set font face
 #+begin_src emacs-lisp
 (setq doom-font (font-spec :size 20)
-      doom-variable-pitch-font (font-spec :family "ETBembo"))
+      doom-variable-pitch-font (font-spec :family "CMU Serif"))
 #+end_src
 
 *** Enable mixed-pitch mode
@@ -30,7 +30,7 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 
 ** Show line numbers
 #+BEGIN_SRC emacs-lisp
-(setq display-line-numbers-type t)
+(setq display-line-numbers-type nil)
 #+end_src
 
 ** Hide emphasis (bold, italic) markers for clean editing
@@ -60,7 +60,9 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 #+begin_src emacs-lisp
 (after! org
   (setq org-roam-directory "~/Dropbox/JHU/notes")
-  (setq org-roam-db-location "~/.roam/org-roam.db"))
+  (setq org-roam-db-location "~/.roam/org-roam.db")
+  (setq org-startup-with-latex-preview t)
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0)))
 #+end_src
 *** Insert node without jumping to insert buffer
 Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/
@@ -95,6 +97,20 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
 
           )))
 
+#+end_src
+
+** Use custom font for Org Headers
+#+begin_src emacs-lisp
+(after! org
+  (custom-theme-set-faces
+   'user
+   '(org-level-1 ((t (:inherit outline-1 :family "CMU Sans Serif Demi Condensed" :height 1.2))) t)
+   '(org-level-2 ((t (:inherit outline-2 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-3 ((t (:inherit outline-3 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-4 ((t (:inherit outline-4 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-5 ((t (:inherit outline-5 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-6 ((t (:inherit outline-6 :family "CMU Sans Serif Demi Condensed"))) t)
+   '(org-level-7 ((t (:inherit outline-7 :family "CMU Sans Serif Demi Condensed"))) t)))
 #+end_src
 
 ** Org Agenda
