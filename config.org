@@ -1,6 +1,5 @@
 * Aesthetics
 Settings related to the appearance of Doom Emacs, but not it's functionality.
-
 ** Theme
 #+BEGIN_SRC emacs-lisp
 (setq doom-theme 'doom-one)
@@ -21,6 +20,11 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
   :config
   (setq mixed-pitch-set-height t)
   (set-face-attribute 'variable-pitch nil :height 250))
+#+end_src
+
+*** Set scaling in write-room mode
+#+begin_src emacs-lisp
+(setq +zen-text-scale 1.1)
 #+end_src
 
 ** Disable titlebar
@@ -47,14 +51,15 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 
 #+end_src
 * Org
+** Set initial buffer
+Load the Index MOC as the inital buffer
+#+begin_src emacs-lisp
+(setq initial-buffer-choice "~/Dropbox/JHU/notes/20231128150020-index.org")
+#+end_src
 ** Org Directory
 #+begin_src emacs-lisp
 (setq org-directory "~/Dropbox/JHU/notes")
 #+end_src
-
-#+RESULTS:
-: ~/Dropbox/JHU/notes/org/
-
 ** Org Roam
 *** Setup
 #+begin_src emacs-lisp
@@ -98,8 +103,43 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
           )))
 
 #+end_src
+*** Org-roam insert add space after VIM cursor
+#+begin_src emacs-lisp
+(after! org-roam
+      ; Workaround an upstream issue with evil, as described in https://github.com/syl20bnr/spacemacs/issues/14137
+      (defadvice org-roam-node-insert (around append-if-in-evil-normal-mode activate compile)
+        "If in evil normal mode and cursor is on a whitespace character, then go into
+         append mode first before inserting the link. This is to put the link after the
+         space rather than before."
+        (let ((is-in-evil-normal-mode (and (bound-and-true-p evil-mode)
+                                          (not (bound-and-true-p evil-insert-state-minor-mode))
+                                          (looking-at "[[:blank:]]"))))
+          (if (not is-in-evil-normal-mode)
+              ad-do-it
+            (evil-append 0)
+            ad-do-it
+            (evil-normal-state)))))
 
-** Use custom font for Org Headers
+
+#+end_src
+*** Org-roam which-key configuration
+#+begin_src emacs-lisp
+(after! org
+
+  ;; Promote org heading
+  (map! :leader
+        (:prefix ("r" . "roam")
+         :desc "Goto today" "t" #'org-roam-dailies-goto-today
+         :desc "Find node" "f" #'org-roam-node-find
+         :desc "Insert node" "i" #'org-roam-node-insert
+         :desc "Insert node immediate" "I" #'org-roam-node-insert-immediate
+         :desc "Sync database" "s" #'org-roam-db-sync
+         :desc "Goto date" "d" #'org-roam-dailies-goto-date
+         )))
+
+#+end_src
+** Org Aesthetics
+*** Use custom font for Org Headers
 #+begin_src emacs-lisp
 (after! org
   (custom-theme-set-faces
@@ -111,6 +151,10 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
    '(org-level-5 ((t (:inherit outline-5 :family "CMU Sans Serif Demi Condensed"))) t)
    '(org-level-6 ((t (:inherit outline-6 :family "CMU Sans Serif Demi Condensed"))) t)
    '(org-level-7 ((t (:inherit outline-7 :family "CMU Sans Serif Demi Condensed"))) t)))
+#+end_src
+*** Use inline images
+#+begin_src emacs-lisp
+(setq org-startup-with-inline-images t)
 #+end_src
 
 ** Org Agenda

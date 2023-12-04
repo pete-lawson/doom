@@ -10,6 +10,8 @@
   (setq mixed-pitch-set-height t)
   (set-face-attribute 'variable-pitch nil :height 250))
 
+(setq +zen-text-scale 1.1)
+
 (setq default-frame-alist '((undecorated . t)))
 
 (setq display-line-numbers-type nil)
@@ -20,6 +22,8 @@
 ;; biblio
 (after! citar
   (setq citar-bibliography '("~/Dropbox/JHU/references/references.bib")))
+
+(setq initial-buffer-choice "~/Dropbox/JHU/notes/20231128150020-index.org")
 
 (setq org-directory "~/Dropbox/JHU/notes")
 
@@ -57,6 +61,34 @@
 
           )))
 
+(after! org-roam
+      ; Workaround an upstream issue with evil, as described in https://github.com/syl20bnr/spacemacs/issues/14137
+      (defadvice org-roam-node-insert (around append-if-in-evil-normal-mode activate compile)
+        "If in evil normal mode and cursor is on a whitespace character, then go into
+         append mode first before inserting the link. This is to put the link after the
+         space rather than before."
+        (let ((is-in-evil-normal-mode (and (bound-and-true-p evil-mode)
+                                          (not (bound-and-true-p evil-insert-state-minor-mode))
+                                          (looking-at "[[:blank:]]"))))
+          (if (not is-in-evil-normal-mode)
+              ad-do-it
+            (evil-append 0)
+            ad-do-it
+            (evil-normal-state)))))
+
+(after! org
+
+  ;; Promote org heading
+  (map! :leader
+        (:prefix ("r" . "roam")
+         :desc "Goto today" "t" #'org-roam-dailies-goto-today
+         :desc "Find node" "f" #'org-roam-node-find
+         :desc "Insert node" "i" #'org-roam-node-insert
+         :desc "Insert node immediate" "I" #'org-roam-node-insert-immediate
+         :desc "Sync database" "s" #'org-roam-db-sync
+         :desc "Goto date" "d" #'org-roam-dailies-goto-date
+         )))
+
 (after! org
   (custom-theme-set-faces
    'user
@@ -67,6 +99,8 @@
    '(org-level-5 ((t (:inherit outline-5 :family "CMU Sans Serif Demi Condensed"))) t)
    '(org-level-6 ((t (:inherit outline-6 :family "CMU Sans Serif Demi Condensed"))) t)
    '(org-level-7 ((t (:inherit outline-7 :family "CMU Sans Serif Demi Condensed"))) t)))
+
+(setq org-startup-with-inline-images t)
 
 (after! org
   (setq org-agenda-files '("~/Dropbox/JHU/notes/projects"
