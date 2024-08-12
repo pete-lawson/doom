@@ -2,7 +2,7 @@
 Settings related to the appearance of Doom Emacs, but not it's functionality.
 ** Theme
 #+BEGIN_SRC emacs-lisp
-(setq doom-theme 'doom-gruvbox-light)
+(setq doom-theme 'doom-gruvbox)
 #+END_SRC
 
 ** Font
@@ -48,7 +48,14 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 (global-set-key (kbd "M-s-k")    'windmove-up)
 (global-set-key (kbd "M-s-j")  'windmove-down)
 #+end_src
-
+* Debugging
+This section is for code to patch problems unresolved in the upstream.
+** Evil search not working in folded org-headings
+The following code should help (Source: https://github.com/doomemacs/doomemacs/issues/6478)
+#+begin_src emacs-lisp
+(after! evil
+  (evil-select-search-module 'evil-search-module 'isearch))
+#+end_src
 * Biblio setup
 #+begin_src emacs-lisp
 ;; biblio
@@ -77,8 +84,13 @@ Load the Index MOC as the inital buffer
 *** Setup
 #+begin_src emacs-lisp
 (after! org
+  ;; Allow exporting of notes w/ org-roam nodes
+  (require 'org-roam-export)
+  (setq org-id-track-globally t)
+  ;; Roam config
   (setq org-roam-directory "~/Dropbox/JHU/notes")
   (setq org-roam-db-location "~/.roam/org-roam.db")
+  ;; Latex preview by default
   (setq org-startup-with-latex-preview t)
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0)))
 #+end_src
@@ -99,21 +111,42 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
 )
 #+end_src
 *** Custom org-roam capture templates
+Source:
+https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/#streamlined-custom-capture-for-tasks-and-notes
 #+begin_src emacs-lisp
+(global-set-key (kbd "C-c n t") #'my/org-roam-capture-task)
 (after! org-roam
   (setq org-roam-capture-templates
         '(
           ("d" "default" plain "%?"
            :if-new (file+head "${slug}.org"
-                              "#+title: ${title}\n") :unnarrowed t)
-          ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+                              "#+title: ${title}\n#+category: ${title}\n#+filetags: :%^{tag}:") :unnarrowed t)
+          ("p" "project" plain "* Goals\n\n%?\n\n* Dates\n\n"
            :if-new (file+head "projects/${slug}.org"
                               "#+title: ${title}\n#+category: ${title}\n#+filetags: :project:") :unnarrowed t)
+          ("r" "contact" plain "* Contact\n\n%?"
+           :if-new (file+head "contacts/${slug}.org"
+                              "#+title: ${title}\n#+category: ${title}\n#+filetags: :contact:") :unnarrowed t)
           ("c" "consult" plain "* Description\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n*"
            :if-new (file+head "consults/${slug}.org"
                               "#+title: ${title}\n#+category: ${title}\n#+filetags: :consult:") :unnarrowed t)
-
+          ("c" "consult" plain "* Description\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n*"
+           :if-new (file+head "consults/${slug}.org"
+                              "#+title: ${title}\n#+category: ${title}\n#+filetags: :consult:") :unnarrowed t)
+          ("i" "interaction" entry "* %?"
+            :target (file+olp nil ("Interactions"))
+            :unnarrowed t)
           )))
+
+#+end_src
+
+*** Turn on unlinked reference search in org-roam (may slow things down)
+#+begin_src emacs-lisp
+(after! org-roam
+  (setq org-roam-mode-section-functions
+        (list #'org-roam-backlinks-section
+              #'org-roam-reflinks-section
+              #'org-roam-unlinked-references-section)))
 
 #+end_src
 *** Org-roam insert add space after VIM cursor
@@ -143,8 +176,12 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
   (map! :leader
         (:prefix ("r" . "roam")
          :desc "Goto today" "t" #'org-roam-dailies-goto-today
+         :desc "Create an entry in today's daily"  "c" #'org-roam-dailies-capture-today
+         :desc "Capture to a node"  "C" #'org-roam-capture
          :desc "Goto tomorrow" "T" #'org-roam-dailies-goto-tomorrow
          :desc "Goto yesterday" "y" #'org-roam-dailies-goto-yesterday
+         :desc "Go to next daily" "n" #'org-roam-dailies-goto-next-note
+         :desc "Go to previous daily" "p" #'org-roam-dailies-goto-previous-note
          :desc "Find node" "f" #'org-roam-node-find
          :desc "Insert node" "i" #'org-roam-node-insert
          :desc "Insert node immediate" "I" #'org-roam-node-insert-immediate
@@ -154,7 +191,11 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
          )))
 
 #+end_src
-
+*** Org add file targets to org-refile
+#+begin_src emacs-lisp
+(after! org-roam
+  (setq org-refile-use-outline-path 'file))
+#+end_src
 ** Org Aesthetics
 *** Use custom font for Org Headers
 #+begin_src emacs-lisp
@@ -173,14 +214,35 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
 #+begin_src emacs-lisp
 (setq org-startup-with-inline-images t)
 #+end_src
+*** Add margins to display
+Borrowed from SystemCrafters: https://github.com/daviwil/emacs-from-scratch/tree/1a13fcf0dd6afb41fce71bf93c5571931999fed8
+#+begin_src emacs-lisp
+(defun org-mode-visual-fill ()
+  (setq visual-fill-column-width 100
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
 
+(use-package visual-fill-column
+  :hook (org-mode . org-mode-visual-fill))
+
+#+end_src
 ** Org Agenda
 #+begin_src emacs-lisp
 (after! org
   (setq org-agenda-files '("~/Dropbox/JHU/notes/daily"
-    "~/Dropbox/JHU/notes/projects/projects.org"
-    "~/Dropbox/JHU/notes/consults/consults.org"
+    "~/Dropbox/JHU/notes/projects"
+    "~/Dropbox/JHU/notes/working_groups/working_groups.org"
+    "~/Dropbox/JHU/notes/consults"
     "~/Dropbox/JHU/notes/areas.org"
+    "~/Dropbox/JHU/notes/calendar.org"
+    "~/Dropbox/JHU/notes/instruction.org"
+    "~/Dropbox/JHU/notes/professional_development.org"
+    "~/Dropbox/JHU/notes/data_grant.org"
+    "~/Dropbox/JHU/notes/icpsr.org"
+    "~/Dropbox/JHU/notes/data_grant.org"
+    "~/Dropbox/JHU/notes/outreach.org"
+    "~/Dropbox/JHU/notes/admin.org"
+    "~/Dropbox/JHU/notes/data_visualization.org"
     )))
 #+end_src
 
@@ -194,27 +256,75 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
   (setq org-agenda-skip-scheduled-if-done t
       org-agenda-skip-deadline-if-done t
       org-agenda-include-deadlines t
-      org-agenda-include-diary t
-      org-agenda-block-separator nil
+     ; Line divider between days (https://github.com/alphapapa/org-super-agenda/issues/74)
+      org-agenda-format-date (lambda (date) (concat "\n"
+                                                    (make-string (window-width) 9472)
+                                                    "\n"
+                                                    (org-agenda-format-date-aligned date)))
+      org-agenda-include-diary nil
+      org-agenda-block-separator t
       org-agenda-compact-blocks t
       org-agenda-start-with-log-mode t
       org-agenda-start-day nil)
   (setq org-agenda-custom-commands
-        '(("p" "Projects"
-           ((todo "TODO|WAIT" (
+        '(
+          ("d" "Deadlines" agenda ""
+           ((org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"
+                                "~/Dropbox/JHU/notes/consults/consults.org"
+                                "~/Dropbox/JHU/notes/working_groups/working_groups.org"
+                                "~/Dropbox/JHU/notes/areas.org"
+                                "~/Dropbox/JHU/notes/instruction.org"))
+            ))
+
+          ("p" "Projects"
+           ((tags "active/TODO|WAIT" (
                                (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"))
                                (org-agenda-overriding-header "Project TODOs")
                                (org-super-agenda-groups
                                 '((:auto-outline-path t)))))
             ))
           ("c" "Consults"
-           ((todo "TODO|WAIT" (
+           ((tags "active/TODO|WAIT" (
                                (org-agenda-files '("~/Dropbox/JHU/notes/consults/consults.org"))
                                (org-agenda-overriding-header "Consult TODOs")
                                (org-super-agenda-groups
                                 '((:auto-outline-path t)))))
             ))
-          ("a" "Areas"
+          ("w" "Working Groups"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/working_groups/working_groups.org"))
+                               (org-agenda-overriding-header "Working Group TODOs")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+          ("P" "Priority"
+           (
+                (tags-todo "+PRIORITY=\"A\""
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/consults/consults.org"))
+                               (org-agenda-overriding-header "Priority Consults")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+                (tags-todo "+PRIORITY=\"A\""
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"))
+                               (org-agenda-overriding-header "Priority Projects")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+                (tags-todo "+PRIORITY=\"A\""
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/areas.org"))
+                               (org-agenda-overriding-header "Priority Areas")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+                (tags-todo "+PRIORITY=\"A\""
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/working_groups/working_groups.org"))
+                               (org-agenda-overriding-header "Priority Working Groups")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+          ("A" "Areas"
            ((todo "TODO|WAIT" (
                                (org-agenda-files '("~/Dropbox/JHU/notes/areas.org"))
                                (org-agenda-overriding-header "Area TODOs")
@@ -222,7 +332,29 @@ Source: https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hack
                                 '((:auto-outline-path t)))))
             ))
 
+          ("i" "Instruction"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/instruction.org"))
+                               (org-agenda-overriding-header "Instruction TODOs")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+
           ))
   :config
   (org-super-agenda-mode))
+#+end_src
+
+#+RESULTS:
+: t
+
+** Org Auto Update Cookies
+#+begin_src emacs-elisp
+(defun org-update-cookies-after-save()
+(interactive)
+(let ((current-prefix-arg '(4)))
+(org-update-statistics-cookies "ALL")))
+
+(add-hook 'org-mode-hook
+(lambda () (add-hook 'before-save-hook 'org-update-cookies-after-save nil 'make-it-local)))
 #+end_src
