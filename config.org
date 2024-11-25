@@ -1,31 +1,33 @@
 * Aesthetics
 Settings related to the appearance of Doom Emacs, but not it's functionality.
-** Theme
+
+** Theming
 #+BEGIN_SRC emacs-lisp
 (setq doom-theme 'doom-gruvbox)
 #+END_SRC
 
 ** Font
-*** Set font face
+Set font face
 #+begin_src emacs-lisp
 (setq doom-font (font-spec :size 22))
 #+end_src
 
-*** Enable mixed-pitch mode
+Enable mixed-pitch mode
 #+begin_src emacs-lisp
 (use-package! mixed-pitch
   :hook (org-mode . mixed-pitch-mode)
   :config
   (setq mixed-pitch-set-height t)
-  (set-face-attribute 'variable-pitch nil :family "CMU Serif" :height 1.2))
+  (set-face-attribute 'variable-pitch nil :family "CMU Serif" :height 1.3))
 #+end_src
 
-*** Set scaling in write-room mode
+Set scaling in write-room mode
 #+begin_src emacs-lisp
 (setq +zen-text-scale 1.1)
 #+end_src
 
-** Disable titlebar
+** GUI
+Disable titlebar
 #+begin_src emacs-lisp
 (setq default-frame-alist '((undecorated . t)))
 #+end_src
@@ -40,6 +42,7 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 (after! org
   (setq org-hide-emphasis-markers t))
 #+end_src
+
 * Movement
 ** Window Movement
 #+begin_src emacs-lisp
@@ -48,6 +51,7 @@ Settings related to the appearance of Doom Emacs, but not it's functionality.
 (global-set-key (kbd "M-s-k")    'windmove-up)
 (global-set-key (kbd "M-s-j")  'windmove-down)
 #+end_src
+
 * Debugging
 This section is for code to patch problems unresolved in the upstream.
 ** Evil search not working in folded org-headings
@@ -56,6 +60,7 @@ The following code should help (Source: https://github.com/doomemacs/doomemacs/i
 (after! evil
   (evil-select-search-module 'evil-search-module 'isearch))
 #+end_src
+
 * Biblio setup
 #+begin_src emacs-lisp
 ;; biblio
@@ -64,21 +69,40 @@ The following code should help (Source: https://github.com/doomemacs/doomemacs/i
 
 #+end_src
 * Org
-** Set initial buffer
-Load the Index MOC as the inital buffer
+** Org-Mode Configuration
 #+begin_src emacs-lisp
 (setq initial-buffer-choice "~/Dropbox/JHU/notes/index.org")
-#+end_src
-** Org Directory
-#+begin_src emacs-lisp
 (setq org-directory "~/Dropbox/JHU/notes")
+(setq org-log-done 'time)
+(setq org-columns-default-format
+      "%70ITEM %TODO %3PRIORITY %TAGS %DEADLINE %SCHEDULED %TIMESTAMP")
 #+end_src
 
-** Org Attach
+** Org Attach and Keywords
 *** Setup
 #+begin_src emacs-lisp
 (after! org
   (setq org-attach-id-directory "~/Dropbox/JHU/notes/images"))
+  (setq org-todo-keywords
+      '((sequence "TODO" "PROG" "WAIT" "|" "DONE" "KILL" "GIVE")))
+#+end_src
+** Obsidian Link Handling
+#+begin_src emacs-lisp
+(after! org
+;; obsidan link handling for obsidian:// links
+  (defun org-obidian-link-open (slash-message-id)
+    "Handler for org-link-set-parameters that opens a obsidian:// link in obsidian"
+    ;; remove any / at the start of slash-message-id to create real note-id
+    (let ((message-id
+           (replace-regexp-in-string (rx bos (* "/"))
+                                     ""
+                                     slash-message-id)))
+      (do-applescript
+       (concat "tell application \"Obsidian\" to open location \"obsidian://"
+               message-id
+               "\" activate"))))
+  ;; on obsdian://aoeu link, this will call handler with //aoeu
+)
 #+end_src
 ** Org Roam
 *** Setup
@@ -91,7 +115,7 @@ Load the Index MOC as the inital buffer
   (setq org-roam-directory "~/Dropbox/JHU/notes")
   (setq org-roam-db-location "~/.roam/org-roam.db")
   ;; Latex preview by default
-  (setq org-startup-with-latex-preview t)
+  ;;(setq org-startup-with-latex-preview t)
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0)))
 #+end_src
 *** Insert node without jumping to insert buffer
@@ -139,7 +163,14 @@ https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/#strea
           )))
 
 #+end_src
-
+*** Custom org-capture template
+#+begin_src emacs-lisp
+(after! org
+  ;; Custom capture templates
+  (setq org-capture-templates
+        '(("t" "tickler" entry (file+headline "~/Dropbox/JHU/notes/calendar.org" "Tickler")
+           "* TODO %?\n"))))
+#+end_src
 *** Turn on unlinked reference search in org-roam (may slow things down)
 #+begin_src emacs-lisp
 (after! org-roam
@@ -265,9 +296,95 @@ Borrowed from SystemCrafters: https://github.com/daviwil/emacs-from-scratch/tree
       org-agenda-block-separator t
       org-agenda-compact-blocks t
       org-agenda-start-with-log-mode t
+      ;; Custom org separator
+      org-agenda-block-separator (string-to-char "━")
+      ;; Add spacing between blocks
+      org-agenda-compact-blocks nil
       org-agenda-start-day nil)
   (setq org-agenda-custom-commands
+        ;; Tags and Todos with: tags "TAG/TODO|WAIT"
         '(
+
+          ("p" "Projects"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"))
+                               (org-agenda-overriding-header "Project TODOs")
+                               (org-agenda-prefix-format " %-4t% s")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+          ("z" "Areas"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/areas.org"))
+                               (org-agenda-overriding-header "Area TODOs")
+                               (org-agenda-prefix-format " %-4t% s")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path f)))))
+            ))
+          ("g" "Working Groups"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/working_groups/working_groups.org"))
+                               (org-agenda-overriding-header "Working Group TODOs")
+                               (org-agenda-prefix-format " %-4t% s")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+          ("c" "Consults"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/consults/consults.org"))
+                               (org-agenda-overriding-header "Consult TODOs")
+                               (org-agenda-prefix-format " %-4t% s")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+          ("w" "Waiting"
+           ((todo "WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"
+                                "~/Dropbox/JHU/notes/consults/consults.org"
+                                "~/Dropbox/JHU/notes/working_groups/working_groups.org"
+                                "~/Dropbox/JHU/notes/areas.org"))
+                               (org-agenda-overriding-header "Waiting Actions")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path f)))))
+            ))
+          ("n" "Next Actions"
+           (
+                (tags "next/TODO|WAIT"
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/consults/consults.org"))
+                               (org-agenda-overriding-header "Next Consult")
+                               (org-agenda-block-separator (string-to-char "━"))
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+                (tags "next/TODO|WAIT"
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/working_groups/working_groups.org"))
+                               (org-agenda-overriding-header "\nNext Working Group")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+                (tags "next/TODO|WAIT"
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"))
+                               (org-agenda-overriding-header "\nNext Project")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+
+                (tags "next/TODO|WAIT"
+                (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/areas.org"))
+                               (org-agenda-overriding-header "\nNext Area")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+
+          ("s" "Someday"
+           ((todo "TODO|WAIT" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/someday.org"))
+                               (org-agenda-overriding-header "Someday")
+                               (org-super-agenda-groups
+                                '((:auto-outline-path t)))))
+            ))
+
           ("d" "Deadlines" agenda ""
            ((org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"
                                 "~/Dropbox/JHU/notes/consults/consults.org"
@@ -276,70 +393,21 @@ Borrowed from SystemCrafters: https://github.com/daviwil/emacs-from-scratch/tree
                                 "~/Dropbox/JHU/notes/instruction.org"))
             ))
 
-          ("p" "Projects"
-           ((tags "active/TODO|WAIT" (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"))
-                               (org-agenda-overriding-header "Project TODOs")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-            ))
-          ("c" "Consults"
-           ((tags "active/TODO|WAIT" (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/consults/consults.org"))
-                               (org-agenda-overriding-header "Consult TODOs")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-            ))
-          ("w" "Working Groups"
-           ((todo "TODO|WAIT" (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/working_groups/working_groups.org"))
-                               (org-agenda-overriding-header "Working Group TODOs")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-            ))
-          ("P" "Priority"
-           (
-                (tags-todo "+PRIORITY=\"A\""
-                (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/consults/consults.org"))
-                               (org-agenda-overriding-header "Priority Consults")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-                (tags-todo "+PRIORITY=\"A\""
-                (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"))
-                               (org-agenda-overriding-header "Priority Projects")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-                (tags-todo "+PRIORITY=\"A\""
-                (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/areas.org"))
-                               (org-agenda-overriding-header "Priority Areas")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-                (tags-todo "+PRIORITY=\"A\""
-                (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/working_groups/working_groups.org"))
-                               (org-agenda-overriding-header "Priority Working Groups")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-            ))
-          ("A" "Areas"
-           ((todo "TODO|WAIT" (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/areas.org"))
-                               (org-agenda-overriding-header "Area TODOs")
-                               (org-super-agenda-groups
-                                '((:auto-outline-path t)))))
-            ))
+          ("r" "Weekly review"
+           ((todo "DONE|KILL" (
+                               (org-agenda-files '("~/Dropbox/JHU/notes/projects/projects.org"
+                                "~/Dropbox/JHU/notes/consults/consults.org"
+                                "~/Dropbox/JHU/notes/working_groups/working_groups.org"
+                                "~/Dropbox/JHU/notes/areas.org"
+                                "~/Dropbox/JHU/notes/instruction.org"))
 
-          ("i" "Instruction"
-           ((todo "TODO|WAIT" (
-                               (org-agenda-files '("~/Dropbox/JHU/notes/instruction.org"))
-                               (org-agenda-overriding-header "Instruction TODOs")
+                               (org-agenda-start-day "-7d")
+                               (org-agenda-start-on-weekday 1)
+                               (org-agenda-start-with-log-mode '(closed))
+                               (org-agenda-show-log t)
                                (org-super-agenda-groups
                                 '((:auto-outline-path t)))))
             ))
-
           ))
   :config
   (org-super-agenda-mode))
@@ -347,7 +415,13 @@ Borrowed from SystemCrafters: https://github.com/daviwil/emacs-from-scratch/tree
 
 #+RESULTS:
 : t
-
+** Org Tag Styling
+#+begin_src emacs-lisp
+(setq org-tag-faces
+      '(("next" . (:foreground "LightSkyBlue" :weight bold))
+        ("tickler" . (:foreground "Purple" :weight bold))
+        ("jira" . (:foreground "#FFFFFF" :background "#0052CC" :weight bold))))
+#+end_src
 ** Org Auto Update Cookies
 #+begin_src emacs-elisp
 (defun org-update-cookies-after-save()
